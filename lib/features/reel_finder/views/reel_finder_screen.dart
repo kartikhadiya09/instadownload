@@ -21,6 +21,13 @@ class _ReelFinderScreenState extends State<ReelFinderScreen>
   TextEditingController copyTextController = TextEditingController();
   bool downloading = false;
   ReceivePort receivePort = ReceivePort();
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    FlutterClipboard.paste()
+        .then((value) => download(reelUrl: value));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -34,7 +41,7 @@ class _ReelFinderScreenState extends State<ReelFinderScreen>
           child: Column(
             children: [
               SizedBox(
-                height: 45,
+                height: 70,
                 child: TextFormField(
                   controller: copyTextController,
                   decoration: const InputDecoration(
@@ -61,36 +68,6 @@ class _ReelFinderScreenState extends State<ReelFinderScreen>
                   ),
                 ),
               ),
-              InkWell(
-                onTap: () async {
-                  download(reelUrl: copyTextController.text);
-                },
-                child: Card(
-                  child: Container(
-                    height: 50,
-                    width: 100,
-                    color: Colors.blue,
-                    child: const Center(
-                      child: Text("Past"),
-                    ),
-                  ),
-                ),
-              ),
-              InkWell(
-                onTap: () async {
-                  _downloadFile();
-                },
-                child: Card(
-                  child: Container(
-                    height: 50,
-                    width: 100,
-                    color: Colors.blue,
-                    child: const Center(
-                      child: Text("Url"),
-                    ),
-                  ),
-                ),
-              ),
             ],
           ),
         ),
@@ -98,30 +75,23 @@ class _ReelFinderScreenState extends State<ReelFinderScreen>
     );
   }
 
-  void _downloadFile() async {
-    final permission = await Permission.storage.request();
-    if (permission.isGranted) {
-      final baseStorage = await await getExternalStorageDirectory();
-      final id = await FlutterDownloader.enqueue(
-        url: copyTextController.text,
-        savedDir: baseStorage!.path,
-        fileName: "File"
-      );
-    }
-  }
-
   void download({required String reelUrl}) async {
-    var myVideoUrl = await flutterInsta.downloadReels(reelUrl);
-
-    await FlutterDownloader.enqueue(
-      url: myVideoUrl,
-      savedDir: '/sdcard/Download',
-      showNotification: true,
-      openFileFromNotification: true,
-    ).whenComplete(() {
-      setState(() {
-        downloading = false;
+    copyTextController.text = reelUrl;
+    var status = await Permission.storage.status;
+    if (status.isGranted) {
+      var myVideoUrl = await flutterInsta.downloadReels(reelUrl);
+      final storage = await getExternalStorageDirectory();
+      await FlutterDownloader.enqueue(
+        url: myVideoUrl,
+        savedDir: storage!.path,
+        // savedDir: "/storage/emulated/0/Download/",
+        showNotification: true,
+        openFileFromNotification: true,
+      ).whenComplete(() {
+        setState(() {
+          downloading = false;
+        });
       });
-    });
+    }
   }
 }
